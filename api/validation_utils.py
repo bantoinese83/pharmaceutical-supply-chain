@@ -25,9 +25,9 @@ class Validator:
         return Validator.validate(schema, transaction_detail)
 
     @staticmethod
-    def validate_id(id):
+    def validate_id(_id):
         schema = Schema(All(int, Range(min=0)))
-        return Validator.validate(schema, id)
+        return Validator.validate(schema, _id)
 
     @staticmethod
     def validate_quantity(quantity):

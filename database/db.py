@@ -1,37 +1,49 @@
 import logging
 import sqlite3
-from time import sleep
 
-from halo import Halo
-
-spinner = Halo(
-    text="Creating database...",
-    spinner="dots",
-)
+from database.db_config import DatabaseConfig
+from log_config.logging_config import LoggingConfig
 
 
 class SupplyChainDatabase:
-    def __init__(self, db_name="supply_chain.db"):
-        self.db_name = db_name
-        logging.basicConfig(level=logging.DEBUG)
+    def __init__(self):
+        self.db_config = DatabaseConfig()
+        self.db_name = self.db_config.DB_CONFIG[self.db_config.DB_TYPE]
+        self.logging_config = LoggingConfig()
+        self.logging_config.configure_logger()
+        self.logging_config.configure_eliot()
+        self.spinner = self.logging_config.initialize_spinner()
 
     def _execute_query(self, query, params=None):
         connection = sqlite3.connect(self.db_name)
         cursor = connection.cursor()
+
+        # Check if the tables already exist
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='transactions'")
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='suppliers'")
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='customers'")
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='products'")
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='inventory'")
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='shipments'")
+        if cursor.fetchone():
+            print("Database is already set up.")
+            return
+
         try:
             if params:
                 cursor.execute(query, params)
             else:
                 cursor.execute(query)
             connection.commit()
-        except sqlite3.Error as e:
-            logging.error("Error executing query: %s", e)
+        except sqlite3.Error:
+            logging.basicConfig(filename='logs/python_logger.log', level=logging.INFO)
         finally:
             connection.close()
 
     def create_database(self):
         connection = None
         try:
+            self.spinner.start("Creating database...")
             connection = sqlite3.connect(self.db_name)
             cursor = connection.cursor()
             cursor.execute(
@@ -99,10 +111,7 @@ class SupplyChainDatabase:
                 )
             """
             )
-
-            spinner.start("Creating database...")
-            sleep(2)
-            spinner.succeed("Database created successfully.")
+            self.spinner.succeed("Database created successfully.")
         except sqlite3.Error as e:
             print("Error creating database:", e)
         finally:
@@ -115,26 +124,22 @@ class SupplyChainDatabase:
             expected_delivery_date)
             VALUES (?, ?, ?, ?, ?, ?, ?)
         """
-        self._execute_query(
-            query,
-            (
-                transaction["product_id"],
-                transaction["transaction_detail"],
-                transaction["supplier_id"],
-                transaction["customer_id"],
-                transaction["quantity"],
-                transaction["shipment_date"],
-                transaction["expected_delivery_date"],
-            ),
-        )
-
-    def get_all_transactions(self):
         connection = sqlite3.connect(self.db_name)
         cursor = connection.cursor()
-        cursor.execute("SELECT * FROM transactions")
-        transactions = cursor.fetchall()
+        cursor.execute(query, (
+            transaction["product_id"],
+            transaction["transaction_detail"],
+            transaction["supplier_id"],
+            transaction["customer_id"],
+            transaction["quantity"],
+            transaction["shipment_date"],
+            transaction["expected_delivery_date"],
+        ))
+        transaction_id = cursor.lastrowid
+        connection.commit()
         connection.close()
-        return transactions
+        transaction['id'] = transaction_id
+        return transaction
 
     def insert_supplier(self, supplier):
         query = """
@@ -146,8 +151,6 @@ class SupplyChainDatabase:
         supplier_id = cursor.lastrowid
         connection.commit()
         connection.close()
-
-        # Add the id to the supplier dictionary and return it
         supplier['id'] = supplier_id
         return supplier
 
@@ -161,42 +164,26 @@ class SupplyChainDatabase:
         customer_id = cursor.lastrowid
         connection.commit()
         connection.close()
-
-        # Add the id to the customer dictionary and return it
         customer['id'] = customer_id
         return customer
-
-    # ...
 
     def insert_product(self, product):
         query = """
             INSERT INTO products (product_id, name, description, price)
             VALUES (?, ?, ?, ?)
         """
-        self._execute_query(
-            query,
-            (
-                product["product_id"],
-                product["name"],
-                product["description"],
-                product["price"],
-            ),
-        )
-
-    def get_all_products(self):
         connection = sqlite3.connect(self.db_name)
         cursor = connection.cursor()
-        cursor.execute("SELECT * FROM products")
-        products = cursor.fetchall()
+        cursor.execute(query, (
+            product["product_id"],
+            product["name"],
+            product["description"],
+            product["price"],
+        ))
+        product_id = cursor.lastrowid
+        connection.commit()
         connection.close()
-        return products
-
-    def get_product_by_id(self, product_id):
-        connection = sqlite3.connect(self.db_name)
-        cursor = connection.cursor()
-        cursor.execute("SELECT * FROM products WHERE id = ?", (product_id,))
-        product = cursor.fetchone()
-        connection.close()
+        product['id'] = product_id
         return product
 
     def insert_inventory(self, inventory):
@@ -204,13 +191,47 @@ class SupplyChainDatabase:
          INSERT INTO inventory (product_id, quantity)
          VALUES (?, ?)
         """
-        self._execute_query(
-            query,
-            (
-                inventory["product_id"],
-                inventory["quantity"],
-            ),
-        )
+        connection = sqlite3.connect(self.db_name)
+        cursor = connection.cursor()
+        cursor.execute(query, (
+            inventory["product_id"],
+            inventory["quantity"],
+        ))
+        inventory_id = cursor.lastrowid
+        connection.commit()
+        connection.close()
+        inventory['id'] = inventory_id
+        return inventory
+
+    def insert_shipment(self, shipment):
+        query = """
+            INSERT INTO shipments (supplier_id, customer_id, product_id, quantity, 
+            shipment_date, expected_delivery_date)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """
+        connection = sqlite3.connect(self.db_name)
+        cursor = connection.cursor()
+        cursor.execute(query, (
+            shipment["supplier_id"],
+            shipment["customer_id"],
+            shipment["product_id"],
+            shipment["quantity"],
+            shipment["shipment_date"],
+            shipment["expected_delivery_date"],
+        ))
+        shipment_id = cursor.lastrowid
+        connection.commit()
+        connection.close()
+        shipment['id'] = shipment_id
+        return shipment
+
+    def get_transaction_by_id(self, transaction_id):
+        connection = sqlite3.connect(self.db_name)
+        cursor = connection.cursor()
+        cursor.execute("SELECT * FROM transactions WHERE id = ?", (transaction_id,))
+        transaction = cursor.fetchone()
+        connection.close()
+        return transaction
 
     def get_inventory(self):
         connection = sqlite3.connect(self.db_name)
@@ -220,38 +241,13 @@ class SupplyChainDatabase:
         connection.close()
         return inventory
 
-    def get_inventory_by_product_id(self, product_id):
+    def get_all_products(self):
         connection = sqlite3.connect(self.db_name)
         cursor = connection.cursor()
-        cursor.execute("SELECT * FROM inventory WHERE product_id = ?", (product_id,))
-        inventory = cursor.fetchone()
+        cursor.execute("SELECT * FROM products")
+        products = cursor.fetchall()
         connection.close()
-        return inventory
-
-    def insert_shipment(self, shipment):
-        query = """
-            INSERT INTO shipments (supplier_id, customer_id, product_id, quantity, shipment_date, expected_delivery_date)
-            VALUES (?, ?, ?, ?, ?, ?)
-        """
-        self._execute_query(
-            query,
-            (
-                shipment["supplier_id"],
-                shipment["customer_id"],
-                shipment["product_id"],
-                shipment["quantity"],
-                shipment["shipment_date"],
-                shipment["expected_delivery_date"],
-            ),
-        )
-
-    def get_transaction_by_id(self, transaction_id):
-        connection = sqlite3.connect(self.db_name)
-        cursor = connection.cursor()
-        cursor.execute("SELECT * FROM transactions WHERE id = ?", (transaction_id,))
-        transaction = cursor.fetchone()
-        connection.close()
-        return transaction
+        return products
 
 
 # Initialize the database object

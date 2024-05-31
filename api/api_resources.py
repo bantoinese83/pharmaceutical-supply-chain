@@ -1,7 +1,7 @@
 from flask import request
 from flask_restx import Resource
 
-from api_setup import (
+from api.api_setup import (
     api,
     ns_blockchain,
     ns_transactions,
@@ -12,9 +12,9 @@ from api_setup import (
     ns_customer,
 )
 from blockchain import blockchain
-from db import db
-from models import block_model, supplier_model, customer_model, shipment_model
-from validation_utils import Validator, ValidationError
+from database.db import db
+from models.models import block_model, supplier_model, customer_model, shipment_model
+from api.validation_utils import Validator, ValidationError
 
 
 @api.doc(tags=["blockchain"])
@@ -64,7 +64,7 @@ class Transaction(Resource):
             # Insert the transaction into the database
             db.insert_transaction(block_data)
             # Use the blockchain instance to add a block
-            blockchain.add_block(block_data)
+            blockchain.blockchain.add_block(block_data)
             return {"message": "Transaction recorded successfully"}, 200
         except ValidationError as e:
             return {"message": str(e)}, 400
@@ -80,7 +80,7 @@ class Chain(Resource):
     @staticmethod
     def get():
         chain_data = []
-        for block in blockchain.blockchain:
+        for block in blockchain.blockchain.blockchain:
             chain_data.append(
                 {
                     "index": block.index,

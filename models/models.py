@@ -1,6 +1,6 @@
 from flask_restx import fields
 
-from api_setup import api
+from api.api_setup import api
 
 block_model = api.model('Block', {
     'product_id': fields.String(required=True, description='The product id', example='P12345'),

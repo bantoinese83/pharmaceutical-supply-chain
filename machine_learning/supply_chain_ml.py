@@ -10,6 +10,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import train_test_split
+from log_config.logging_config import logging_config
 
 
 class SupplyChainPredictor:
@@ -21,8 +22,10 @@ class SupplyChainPredictor:
         self.target_train = None
         self.target_test = None
         self.model = None
+        self.spinner = logging_config.initialize_spinner()
 
     def load_data(self):
+        self.spinner.start("Loading data...")  # Start the spinner
         conn = sqlite3.connect(self.db_file)
         query = """
             SELECT transactions.quantity AS trans_quantity, inventory.quantity AS inventory_quantity, 
@@ -38,6 +41,7 @@ class SupplyChainPredictor:
         """
         df = pd.read_sql_query(query, conn)
         conn.close()
+        self.spinner.succeed("Data loaded successfully")
 
         # Data cleaning
         print(df)  # Print DataFrame before cleaning
@@ -70,6 +74,7 @@ class SupplyChainPredictor:
         return df
 
     def prepare_data(self, df):
+        self.spinner.start("Preparing data...")  # Start the spinner
         numeric_columns = df.select_dtypes(include=['int64', 'float64']).columns
         if self.target_column in numeric_columns:
             self.features_train, self.features_test, self.target_train, self.target_test = \
@@ -77,12 +82,20 @@ class SupplyChainPredictor:
                                  test_size=0.2, random_state=42)
         else:
             raise ValueError(f"Column '{self.target_column}' not found in DataFrame")
+        self.spinner.succeed("Data prepared successfully")
 
     def train_model(self):
+        self.spinner.start("Training model...")  # Start the spinner
         self.model = LinearRegression()
         self.model.fit(self.features_train, self.target_train)
 
+        if self.model is None:
+            raise ValueError("Model is None after training")
+
+        self.spinner.succeed("Model trained successfully")
+
     def evaluate_model(self):
+        self.spinner.start("Evaluating model...")  # Start the spinner
         predictions = self.model.predict(self.features_test)
         mse = mean_squared_error(self.target_test, predictions)
         mae = mean_absolute_error(self.target_test, predictions)
@@ -90,22 +103,25 @@ class SupplyChainPredictor:
         print(f"Mean Squared Error: {mse}")
         print(f"Mean Absolute Error: {mae}")
         print(f"R^2 Score: {r2}")
+        self.spinner.succeed("Model evaluated successfully")
 
     def save_model(self, file_format='pkl'):
+        self.spinner.start("Saving model...")  # Start the spinner
         if file_format not in ['pkl', 'joblib', 'onnx']:
             raise ValueError("Invalid file format. Choose one of: 'pkl', 'joblib', 'onnx'")
 
         if file_format == 'pkl':
-            with open('model/psct.pkl', 'wb') as f:
+            with open('machine_learning/models/psct.pkl', 'wb') as f:
                 pickle.dump(self.model, f)
         elif file_format == 'joblib':
-            joblib.dump(self.model, 'model/psct.joblib')
+            joblib.dump(self.model, 'machine_learning/models/psct.joblib')
         elif file_format == 'onnx':
             initial_type = [('float_input', FloatTensorType([None, self.features_train.shape[1]]))]
             onnx_model = convert_sklearn(self.model, initial_types=initial_type)
-            onnx.save_model(onnx_model, 'model/psct.onnx')
+            onnx.save_model(onnx_model, 'machine_learning/models/psct.onnx')
 
         print(f"Model saved as 'model.{file_format}'")
+        self.spinner.succeed("Model saved successfully")
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 from flask import Flask
 
-from api_resources import (
+from api.api_resources import (
     Transaction,
     Chain,
     Supplier,
@@ -9,10 +9,15 @@ from api_resources import (
     Inventory,
     Shipment,
 )
-from api_setup import (
+from api.api_setup import (
     api,
 )
-from db import SupplyChainDatabase
+from database.db import SupplyChainDatabase
+from log_config.logging_config import logging_config
+
+logging_config.configure_logger()
+logging_config.configure_eliot()
+logging_config.initialize_spinner()
 
 app = Flask(__name__)
 api.init_app(app)
@@ -28,6 +33,17 @@ api.add_resource(Transaction, "/transactions", resource_class_kwargs={"db": db})
 api.add_resource(Chain, "/chain", resource_class_kwargs={"db": db})
 api.add_resource(Supplier, "/supplier", resource_class_kwargs={"db": db})
 api.add_resource(Customer, "/customer", resource_class_kwargs={"db": db})
+
+
+@app.before_request
+def before_request():
+    logging_config.start_spinner()
+
+
+@app.after_request
+def after_request(response):
+    logging_config.stop_spinner()
+    return response
 
 
 @api.errorhandler(Exception)
