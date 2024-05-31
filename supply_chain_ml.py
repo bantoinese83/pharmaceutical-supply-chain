@@ -1,16 +1,15 @@
-import sqlite3
-import pandas as pd
-from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
-import joblib
 import pickle
+import sqlite3
+
+import joblib
 import onnx
+import pandas as pd
 from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import FloatTensorType
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from sklearn.model_selection import cross_val_score
-from sklearn.model_selection import KFold
-from sklearn.model_selection import cross_val_predict
+from sklearn.model_selection import train_test_split
 
 
 class SupplyChainPredictor:
