@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="Black">
+    <option name="pathToExecutable" value="$USER_HOME$/miniconda3/bin/black" />
+    <option name="sdkName" value="Python 3.10 (Supply_Chain_Tracking_Pharmaceuticals)" />
+  </component>
+  <component name="ProjectRootManager">
+    <output url="file://$PROJECT_DIR$/out" />
+  </component>
+</project>
