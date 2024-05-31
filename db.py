@@ -140,13 +140,33 @@ class SupplyChainDatabase:
         query = """
             INSERT INTO suppliers (name, address) VALUES (?, ?)
         """
-        self._execute_query(query, (supplier["name"], supplier["address"]))
+        connection = sqlite3.connect(self.db_name)
+        cursor = connection.cursor()
+        cursor.execute(query, (supplier["name"], supplier["address"]))
+        supplier_id = cursor.lastrowid
+        connection.commit()
+        connection.close()
+
+        # Add the id to the supplier dictionary and return it
+        supplier['id'] = supplier_id
+        return supplier
 
     def insert_customer(self, customer):
         query = """
             INSERT INTO customers (name, address) VALUES (?, ?)
         """
-        self._execute_query(query, (customer["name"], customer["address"]))
+        connection = sqlite3.connect(self.db_name)
+        cursor = connection.cursor()
+        cursor.execute(query, (customer["name"], customer["address"]))
+        customer_id = cursor.lastrowid
+        connection.commit()
+        connection.close()
+
+        # Add the id to the customer dictionary and return it
+        customer['id'] = customer_id
+        return customer
+
+    # ...
 
     def insert_product(self, product):
         query = """
