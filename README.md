@@ -163,6 +163,59 @@ Retrieve all transactions from the relational database.
   ]
 }
 ```
+## API Endpoints (continued)
+
+1. **Create Transaction**
+   - **Endpoint:** `/blockchain/create_transaction` (POST)
+   - **Description:** This endpoint is used to record a new transaction in the supply chain.
+
+2. **Get Chain**
+   - **Endpoint:** `/blockchain/get_chain` (GET)
+   - **Description:** This endpoint is used to retrieve the entire blockchain.
+
+3. **Get Block by Index**
+   - **Endpoint:** `/blockchain/get_block_by_index/<int:index>` (GET)
+   - **Description:** This endpoint is used to retrieve a block by its index.
+
+4. **Get Block by Hash**
+   - **Endpoint:** `/blockchain/get_block_by_hash/<string:hash>` (GET)
+   - **Description:** This endpoint is used to retrieve a block by its hash.
+
+5. **Get Transaction by ID**
+   - **Endpoint:** `/transactions/transactions/<int:id>` (GET)
+   - **Description:** This endpoint is used to retrieve a transaction by its ID.
+
+6. **Create Supplier**
+   - **Endpoint:** `/supplier/create_supplier` (POST)
+   - **Description:** This endpoint is used to add a new supplier.
+
+7. **Create Customer**
+   - **Endpoint:** `/customer/create_customer` (POST)
+   - **Description:** This endpoint is used to add a new customer.
+
+8. **Get All Products**
+   - **Endpoint:** `/products/get_all_products` (GET)
+   - **Description:** This endpoint is used to retrieve all products.
+
+9. **Get Product by ID**
+   - **Endpoint:** `/products/get_product_by_id/<int:id>` (GET)
+   - **Description:** This endpoint is used to retrieve a product by its ID.
+
+10. **Get All Inventory**
+   - **Endpoint:** `/inventory/get_all_inventory` (GET)
+   - **Description:** This endpoint is used to retrieve all inventory.
+
+11. **Get Inventory by Product ID**
+   - **Endpoint:** `/inventory/get_inventory_by_product_id/<int:product_id>` (GET)
+   - **Description:** This endpoint is used to retrieve inventory by product ID.
+
+12. **Create Shipment**
+   - **Endpoint:** `/shipments/create_shipment` (POST)
+   - **Description:** This endpoint is used to add a new shipment.
+
+13. **Get All Transactions**
+   - **Endpoint:** `/transactions/get_all_transactions` (GET)
+   - **Description:** This endpoint is used to retrieve all transactions.
 
 
 
@@ -179,4 +232,60 @@ The API validates all inputs using the Voluptuous library:
 - `supplier_id` and `customer_id`: Must be non-negative integers.
 - `quantity`: Must be a non-negative integer.
 - `shipment_date` and `expected_delivery_date`: Must be valid dates in `YYYY-MM-DD` format.
+
+
+## Machine Learning Component
+
+The project includes a machine learning component for predicting the quantity of transactions in the supply chain. This is implemented in the `SupplyChainPredictor` class in the `supply_chain_ml.py` file.
+
+### Features
+- Load and prepare data from the SQLite database.
+- Train a linear regression model on the data.
+- Evaluate the model using Mean Squared Error, Mean Absolute Error, and R^2 score.
+- Save the trained model in different formats (pickle, joblib, ONNX).
+
+### Usage
+
+1. **Initialize the `SupplyChainPredictor`** with the SQLite database file and the target column name:
+    ```python
+    predictor = SupplyChainPredictor(db_file='supply_chain.db', target_column='trans_quantity')
+    ```
+
+2. **Load and prepare the data:**
+    ```python
+    data = predictor.load_data()
+    predictor.prepare_data(data)
+    ```
+
+3. **Train the model:**
+    ```python
+    predictor.train_model()
+    ```
+
+4. **Evaluate the model:**
+    ```python
+    predictor.evaluate_model()
+    ```
+
+5. **Save the model:**
+    ```python
+    predictor.save_model(file_format='pkl')
+    predictor.save_model(file_format='joblib')
+    predictor.save_model(file_format='onnx')
+    ```
+
+### Prerequisites
+
+The following Python packages are required:
+
+- `scikit-learn`
+- `pandas`
+- `joblib`
+- `skl2onnx`
+- `onnx`
+
+These can be installed using pip:
+```sh
+pip install scikit-learn pandas joblib skl2onnx onnx
+```
 
